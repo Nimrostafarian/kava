@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"sort"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/kava-labs/kava/x/incentive/types"
@@ -20,7 +21,7 @@ func (k Keeper) InitializeClaim(
 		claim = types.NewClaim(claimType, owner, sdk.Coins{}, nil)
 	}
 
-	globalRewardIndexes, found := k.GetRewardIndexes(ctx, claimType, sourceID)
+	globalRewardIndexes, found := k.GetRewardIndexesOfClaimType(ctx, claimType, sourceID)
 	if !found {
 		globalRewardIndexes = types.RewardIndexes{}
 	}
@@ -55,7 +56,7 @@ func (k *Keeper) synchronizeClaim(
 	owner sdk.AccAddress,
 	shares sdk.Dec,
 ) types.Claim {
-	globalRewardIndexes, found := k.GetRewardIndexes(ctx, claim.Type, sourceID)
+	globalRewardIndexes, found := k.GetRewardIndexesOfClaimType(ctx, claim.Type, sourceID)
 	if !found {
 		// The global factor is only not found if
 		// - the pool has not started accumulating rewards yet (either there is no reward specified in params, or the reward start time hasn't been hit)
@@ -102,17 +103,25 @@ func (k Keeper) GetSynchronizedClaim(
 	// Fetch all source IDs from indexes
 
 	var sourceIDs []string
-	k.IterateRewardIndexes(ctx, claimType, func(rewardIndexes types.TypedRewardIndexes) bool {
+	k.IterateRewardIndexesByClaimType(ctx, claimType, func(rewardIndexes types.TypedRewardIndexes) bool {
 		sourceIDs = append(sourceIDs, rewardIndexes.CollateralType)
 		return false
 	})
 
 	adapter := k.GetSourceAdapter(claimType)
-	accShares := adapter.GetShares(ctx, owner, sourceIDs)
+	accShares := adapter.OwnerSharesBySource(ctx, owner, sourceIDs)
+
+	var sortedSourceIDs []string
+	for sourceID := range accShares {
+		sortedSourceIDs = append(sortedSourceIDs, sourceID)
+	}
+
+	// Sort source IDs to ensure deterministic order of claim syncs
+	sort.Strings(sortedSourceIDs)
 
 	// Synchronize claim for each source ID
-	for i, sourceID := range sourceIDs {
-		claim = k.synchronizeClaim(ctx, claim, sourceID, owner, accShares[i])
+	for _, sourceID := range sortedSourceIDs {
+		claim = k.synchronizeClaim(ctx, claim, sourceID, owner, accShares[sourceID])
 	}
 
 	return claim, true
