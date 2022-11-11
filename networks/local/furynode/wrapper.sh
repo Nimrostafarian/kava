@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 
-BINARY=/kvd/linux/${BINARY:-kvd}
+BINARY=/fury/linux/${BINARY:-furyd}
 echo "binary: ${BINARY}"
 ID=${ID:-0}
-LOG=${LOG:-kvd.log}
+LOG=${LOG:-fury.log}
 
 if ! [ -f "${BINARY}" ]; then
 	echo "The binary $(basename "${BINARY}") cannot be found. Please add the binary to the shared folder. Please use the BINARY environment variable if the name of the binary is not 'kvd' E.g.: -e BINARY=kvd_my_test_version"
@@ -17,10 +17,10 @@ if [ -z "${BINARY_CHECK}" ]; then
 	exit 1
 fi
 
-export KVDHOME="/kvd/node${ID}/kvd"
+export FURYHOME="/fury/node${ID}/fury"
 
-if [ -d "$(dirname "${KVDHOME}"/"${LOG}")" ]; then
-  "${BINARY}" --home "${KVDHOME}" "$@" | tee "${KVDHOME}/${LOG}"
+if [ -d "$(dirname "${FURYHOME}"/"${LOG}")" ]; then
+  "${BINARY}" --home "${FURYHOME}" "$@" | tee "${FURYHOME}/${LOG}"
 else
-  "${BINARY}" --home "${KVDHOME}" "$@"
+  "${BINARY}" --home "${FURYHOME}" "$@"
 fi

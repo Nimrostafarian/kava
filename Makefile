@@ -5,7 +5,7 @@ TM_PKG_VERSION := $(shell go list -m github.com/tendermint/tendermint | sed 's:.
 COSMOS_PKG_VERSION := $(shell go list -m github.com/cosmos/cosmos-sdk | sed 's:.* ::')
 COMMIT := $(shell git log -1 --format='%H')
 LEDGER_ENABLED ?= true
-PROJECT_NAME = kava
+PROJECT_NAME = fury-hub
 DOCKER:=docker
 DOCKER_BUF := $(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace bufbuild/buf
 HTTPS_GIT := https://github.com/Kava-Labs/kava.git
@@ -53,8 +53,8 @@ build_tags_comma_sep := $(subst $(whitespace),$(comma),$(build_tags))
 
 # process linker flags
 
-ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=kava \
-		  -X github.com/cosmos/cosmos-sdk/version.AppName=kava \
+ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=fury \
+		  -X github.com/cosmos/cosmos-sdk/version.AppName=fury \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)" \
@@ -99,16 +99,16 @@ all: install
 
 build: go.sum
 ifeq ($(OS), Windows_NT)
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(shell go env GOOS)/kava.exe ./cmd/kava
+	go build -mod=readonly $(BUILD_FLAGS) -o build/$(shell go env GOOS)/fury.exe ./cmd/fury
 else
-	go build -mod=readonly $(BUILD_FLAGS) -o build/$(shell go env GOOS)/kava ./cmd/kava
+	go build -mod=readonly $(BUILD_FLAGS) -o build/$(shell go env GOOS)/fury ./cmd/fury
 endif
 
 build-linux: go.sum
 	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
 
 install: go.sum
-	go install -mod=readonly $(BUILD_FLAGS) ./cmd/kava
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/fury
 
 ########################################
 ### Tools & dependencies
@@ -159,7 +159,7 @@ build-docker-local-kava:
 
 # Run a 4-node testnet locally
 localnet-start: build-linux localnet-stop
-	@if ! [ -f build/node0/kvd/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/kvd:Z kava/kavanode testnet --v 4 -o . --starting-ip-address 192.168.10.2 --keyring-backend=test ; fi
+	@if ! [ -f build/node0/kvd/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/kvd:Z fury/furynode testnet --v 4 -o . --starting-ip-address 192.168.10.2 --keyring-backend=test ; fi
 	docker-compose up -d
 
 localnet-stop:
@@ -168,7 +168,7 @@ localnet-stop:
 # Launch a new single validator chain
 start:
 	./contrib/devnet/init-new-chain.sh
-	kava start
+	fury start
 
 ###############################################################################
 ###                                Protobuf                                 ###
@@ -287,15 +287,15 @@ test-migrate:
 # This submits an AWS Batch job to run a lot of sims, each within a docker image. Results are uploaded to S3
 start-remote-sims:
 	# build the image used for running sims in, and tag it
-	docker build -f simulations/Dockerfile -t kava/kava-sim:master .
+	docker build -f simulations/Dockerfile -t fury/fury-sim:master .
 	# push that image to the hub
-	docker push kava/kava-sim:master
+	docker push fury/fury-sim:master
 	# submit an array job on AWS Batch, using 1000 seeds, spot instances
 	aws batch submit-job \
 		-—job-name "master-$(VERSION)" \
 		-—job-queue “simulation-1-queue-spot" \
 		-—array-properties size=1000 \
-		-—job-definition kava-sim-master \
+		-—job-definition fury-sim-master \
 		-—container-override environment=[{SIM_NAME=master-$(VERSION)}]
 
 .PHONY: all build-linux install clean build test test-cli test-all test-rest test-basic start-remote-sims

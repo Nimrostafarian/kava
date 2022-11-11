@@ -1,12 +1,12 @@
 [Unit]
-Description=Kava daemon
+Description=Fury daemon
 After=network-online.target
 
 [Service]
 
-# Run as kava:kava
-User=kava
-ExecStart=/home/kava/go/bin/kvd start
+# Run as fury:fury
+User=fury
+ExecStart=/home/fury/go/bin/furyd start
 Restart=on-failure
 RestartSec=3
 LimitNOFILE=4096
